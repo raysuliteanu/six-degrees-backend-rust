@@ -1519,6 +1519,8 @@ dependencies = [
  "openssl",
  "reqwest",
  "rocket",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
