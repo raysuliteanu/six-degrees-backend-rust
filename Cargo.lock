@@ -367,6 +367,8 @@ dependencies = [
  "atomic 0.6.0",
  "pear",
  "serde",
+ "serde_json",
+ "serde_yaml",
  "toml",
  "uncased",
  "version_check",
@@ -1484,6 +1486,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adf8a49373e98a4c5f0ceb5d05aa7c648d75f63774981ed95b7c7443bbd50c6e"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1516,6 +1531,7 @@ dependencies = [
 name = "six-degrees-backend-rust"
 version = "0.1.0"
 dependencies = [
+ "figment",
  "openssl",
  "reqwest",
  "rocket",
@@ -1927,6 +1943,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab4c90930b95a82d00dc9e9ac071b4991924390d46cbd0dfe566148667605e4b"
 
 [[package]]
 name = "untrusted"
