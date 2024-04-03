@@ -1,7 +1,7 @@
 use reqwest::header;
+use reqwest::header::HeaderValue;
 use serde::{Deserialize, Serialize};
 use std::env;
-use reqwest::header::HeaderValue;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct PersonSearchResult {
@@ -33,14 +33,24 @@ pub struct Credit {
 pub struct PersonClient {
     tmdb_client: reqwest::blocking::Client,
     search_url: String,
-    details_url: String
+    details_url: String,
+}
+
+const BASE_URL_V3: &str = "https://api.themoviedb.org/3";
+const BEARER: &str = "Bearer";
+const TOKEN_ENV_VAR: &str = "TMDB_TOKEN";
+
+impl Default for PersonClient {
+    fn default() -> Self {
+        PersonClient {
+            tmdb_client: reqwest::blocking::Client::new(),
+            search_url: format!("{}/search/person", BASE_URL_V3),
+            details_url: format!("{}/person", BASE_URL_V3),
+        }
+    }
 }
 
 impl PersonClient {
-    const BASE_URL_V3: &'static str = "https://api.themoviedb.org/3";
-    const BEARER: &'static str = "Bearer";
-    const TOKEN_ENV_VAR: &'static str = "TMDB_TOKEN";
-
     pub fn new() -> PersonClient {
         let auth_value = Self::create_auth_header();
         let mut headers = header::HeaderMap::new();
@@ -51,8 +61,7 @@ impl PersonClient {
         {
             PersonClient {
                 tmdb_client: client,
-                search_url: format!("{}/search/person", Self::BASE_URL_V3),
-                details_url: format!("{}/person", Self::BASE_URL_V3),
+                ..Self::default()
             }
         } else {
             // todo: handle error
@@ -61,9 +70,9 @@ impl PersonClient {
     }
 
     fn create_auth_header() -> HeaderValue {
-        let token = env::var(Self::TOKEN_ENV_VAR).unwrap().to_string();
-        let bearer_token = format!("{} {}", Self::BEARER, token);
-        let mut auth_value = header::HeaderValue::from_str(bearer_token.as_str()).unwrap();
+        let token = env::var(TOKEN_ENV_VAR).unwrap().to_string();
+        let bearer_token = format!("{} {}", BEARER, token);
+        let mut auth_value = HeaderValue::from_str(bearer_token.as_str()).unwrap();
         auth_value.set_sensitive(true);
         auth_value
     }
@@ -84,9 +93,7 @@ impl PersonClient {
 
     pub fn search(&self, query: String) -> reqwest::Result<PersonSearchResult> {
         let url = format!("{}?query={}", self.search_url, query);
-        let response = self.tmdb_client
-            .get(url)
-            .send();
+        let response = self.tmdb_client.get(url).send();
 
         if let Ok(result) = response {
             let text = result.text().unwrap();
@@ -112,7 +119,7 @@ mod tests {
             assert_eq!(person_search_result.total_results, 1);
             let search_results = person_search_result.results;
             assert_eq!(search_results.len(), 1);
-            assert!(search_results.get(0).unwrap().known_for.len() > 0)
+            assert!(!search_results.first().unwrap().known_for.is_empty())
         } else {
             panic!("{:?}", result);
         }
