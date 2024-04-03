@@ -18,6 +18,18 @@ pub struct Person {
     popularity: f32,
     #[serde(default)]
     known_for: Vec<Credit>,
+    adult: bool,
+    #[serde(default)]
+    also_known_as: Vec<String>,
+    biography: Option<String>,
+    birthday: Option<String>,
+    deathday: Option<String>,
+    gender: i8,
+    homepage: Option<String>,
+    imdb_id: Option<String>,
+    known_for_department: Option<String>,
+    place_of_birth: Option<String>,
+    profile_path: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -28,6 +40,13 @@ pub struct Credit {
     media_type: String,
     release_date: String,
     popularity: f32,
+    adult: bool,
+    genre_ids: Vec<i32>,
+    video: bool,
+    original_language: String,
+    original_title: String,
+    poster_path: String,
+    backdrop_path: String,
 }
 
 pub struct PersonClient {
