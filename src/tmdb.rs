@@ -1,5 +1,3 @@
-use std::env;
-
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -58,9 +56,7 @@ pub struct PersonClient {
     details_url: String,
 }
 
-const BASE_URL_V3: &str = "https://api.themoviedb.org/3";
 const BEARER: &str = "Bearer";
-const TOKEN_ENV_VAR: &str = "TMDB_TOKEN";
 
 impl Default for PersonClient {
     fn default() -> Self {
@@ -70,20 +66,22 @@ impl Default for PersonClient {
 
 impl PersonClient {
     pub fn new(config: Option<SixDegreesConfig>) -> PersonClient {
-        let headers = Self::create_headers();
-        if let Ok(client) = Self::create_client(headers) {
-            let mut base_url = BASE_URL_V3.to_string();
-            if let Some(config) = config {
-                base_url = config.base_url;
-            }
-            PersonClient {
-                tmdb_client: client,
-                search_url: format!("{}/search/person", base_url),
-                details_url: format!("{}/person", base_url),
+        if let Some(config) = config {
+            let headers = Self::create_headers(config.api_token);
+            match Self::create_client(headers) {
+                Ok(client) => {
+                    PersonClient {
+                        tmdb_client: client,
+                        search_url: format!("{}/search/person", config.base_url),
+                        details_url: format!("{}/person", config.base_url),
+                    }
+                }
+                Err(error) => {
+                    panic!("{:?}", error);
+                }
             }
         } else {
-            // todo: handle error
-            panic!("could not initialize TMDB client")
+            panic!("no configuration provided");
         }
     }
 
@@ -91,16 +89,15 @@ impl PersonClient {
         reqwest::Client::builder().default_headers(headers).build()
     }
 
-    fn create_headers() -> HeaderMap {
-        let auth_value = Self::create_auth_header();
+    fn create_headers(auth_token: String) -> HeaderMap {
+        let auth_value = Self::create_auth_header(auth_token);
         let mut headers = HeaderMap::new();
         headers.insert(header::AUTHORIZATION, auth_value);
         headers
     }
 
-    fn create_auth_header() -> HeaderValue {
-        let token = env::var(TOKEN_ENV_VAR).unwrap().to_string();
-        let bearer_token = format!("{} {}", BEARER, token);
+    fn create_auth_header(auth_token: String) -> HeaderValue {
+        let bearer_token = format!("{} {}", BEARER, auth_token);
         let mut auth_value = HeaderValue::from_str(bearer_token.as_str()).unwrap();
         auth_value.set_sensitive(true);
         auth_value
@@ -134,10 +131,21 @@ impl PersonClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
+
+    const TOKEN_ENV_VAR: &str = "TMDB_API_TOKEN";
+
+    fn setup() -> SixDegreesConfig {
+        let token: String = env::var(TOKEN_ENV_VAR).unwrap().to_string();
+        SixDegreesConfig {
+            api_token: token,
+            ..Default::default()
+        }
+    }
 
     #[tokio::test]
     async fn person_search() {
-        let person_search = PersonClient::default();
+        let person_search = PersonClient::new(Some(setup()));
         let result = person_search.search("nicole+kidman".to_string()).await;
         if let Ok(person_search_result) = result {
             assert_eq!(person_search_result.total_results, 1);
@@ -149,7 +157,7 @@ mod tests {
 
     #[tokio::test]
     async fn person_by_id() {
-        let person_search = PersonClient::default();
+        let person_search = PersonClient::new(Some(setup()));
         let result = person_search.get_by_id(2227).await;
         if let Some(person) = result {
             assert_eq!(person.id, 2227);

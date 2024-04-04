@@ -1,32 +1,15 @@
 #[macro_use] extern crate rocket;
 
 use figment::{Figment, providers::{Env, Format, Yaml}, Result};
-use rocket::serde::json::Json;
-use rocket::State;
-
-use six_degrees_backend_rust::request_controller::RequestController;
+use figment::providers::Serialized;
+use six_degrees_backend_rust::request_controller::{person_detail, person_search, RequestController};
 use six_degrees_backend_rust::six_degrees_config::SixDegreesConfig;
-use six_degrees_backend_rust::tmdb::{Person, PersonSearchResult};
-
-#[get("/person/<id>")]
-async fn person_detail(id: i32, controller: &State<RequestController>) -> Json<Person> {
-    Json(controller.person_client.get_by_id(id).await.unwrap())
-}
-
-#[get("/search/person/<query>")]
-async fn person_search(query: &str, controller: &State<RequestController>) -> Json<PersonSearchResult> {
-    Json(controller.person_client.search(query.to_string()).await.unwrap())
-}
 
 #[launch]
 fn rocket() -> _ {
     match load_config() {
         Ok(app_config) => {
-            println!("{:?}", app_config);
-
-            // todo: use app_config
-            
-            let controller = RequestController::default();
+            let controller = RequestController::new(Some(app_config));
     
             rocket::build()
                 .manage(controller)
@@ -39,11 +22,15 @@ fn rocket() -> _ {
 }
 
 fn load_config() -> Result<SixDegreesConfig> {
-    let config : SixDegreesConfig = Figment::new()
-        .merge(Env::prefixed("TMDB"))
-        .merge(Env::prefixed("SIX_DEGREES"))
-        .join(Yaml::file("6d.yaml"))
+    let config : SixDegreesConfig = Figment::from(Serialized::defaults(SixDegreesConfig::default()))
+        .merge(Yaml::file("6d.yaml"))
+        .merge(Env::prefixed("TMDB_"))
+        .merge(Env::prefixed("SIX_DEGREES_"))
         .extract()?;
+
+    println!("{:?}", config);
+    
+    assert!(!config.api_token.is_empty());
 
     Ok(config)
 }
