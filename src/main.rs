@@ -20,7 +20,6 @@ async fn person_search(query: &str, controller: &State<RequestController>) -> Js
 
 #[launch]
 fn rocket() -> _ {
-
     match load_config() {
         Ok(app_config) => {
             println!("{:?}", app_config);

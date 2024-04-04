@@ -1,8 +1,10 @@
 use std::env;
 
 use reqwest::header;
-use reqwest::header::HeaderValue;
+use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
+
+use crate::six_degrees_config::SixDegreesConfig;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct PersonSearchResult {
@@ -62,25 +64,38 @@ const TOKEN_ENV_VAR: &str = "TMDB_TOKEN";
 
 impl Default for PersonClient {
     fn default() -> Self {
-        PersonClient::new()
+        PersonClient::new(None)
     }
 }
 
 impl PersonClient {
-    pub fn new() -> PersonClient {
-        let auth_value = Self::create_auth_header();
-        let mut headers = header::HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, auth_value);
-        if let Ok(client) = reqwest::Client::builder().default_headers(headers).build() {
+    pub fn new(config: Option<SixDegreesConfig>) -> PersonClient {
+        let headers = Self::create_headers();
+        if let Ok(client) = Self::create_client(headers) {
+            let mut base_url = BASE_URL_V3.to_string();
+            if let Some(config) = config {
+                base_url = config.base_url;
+            }
             PersonClient {
                 tmdb_client: client,
-                search_url: format!("{}/search/person", BASE_URL_V3),
-                details_url: format!("{}/person", BASE_URL_V3),
+                search_url: format!("{}/search/person", base_url),
+                details_url: format!("{}/person", base_url),
             }
         } else {
             // todo: handle error
             panic!("could not initialize TMDB client")
         }
+    }
+
+    fn create_client(headers: HeaderMap) -> reqwest::Result<reqwest::Client> {
+        reqwest::Client::builder().default_headers(headers).build()
+    }
+
+    fn create_headers() -> HeaderMap {
+        let auth_value = Self::create_auth_header();
+        let mut headers = HeaderMap::new();
+        headers.insert(header::AUTHORIZATION, auth_value);
+        headers
     }
 
     fn create_auth_header() -> HeaderValue {
@@ -122,7 +137,7 @@ mod tests {
 
     #[tokio::test]
     async fn person_search() {
-        let person_search = PersonClient::new();
+        let person_search = PersonClient::default();
         let result = person_search.search("nicole+kidman".to_string()).await;
         if let Ok(person_search_result) = result {
             assert_eq!(person_search_result.total_results, 1);
@@ -134,7 +149,7 @@ mod tests {
 
     #[tokio::test]
     async fn person_by_id() {
-        let person_search = PersonClient::new();
+        let person_search = PersonClient::default();
         let result = person_search.get_by_id(2227).await;
         if let Some(person) = result {
             assert_eq!(person.id, 2227);
