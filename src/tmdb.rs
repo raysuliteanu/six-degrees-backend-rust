@@ -114,7 +114,7 @@ impl PersonClient {
         }
     }
 
-    pub async fn search(&self, query: String) -> reqwest::Result<PersonSearchResult> {
+    pub async fn search(&self, query: &str) -> reqwest::Result<PersonSearchResult> {
         let url = format!("{}?query={}", self.search_url, query);
         let response = self.tmdb_client.get(url).send().await.unwrap().text().await;
 
@@ -146,7 +146,7 @@ mod tests {
     #[tokio::test]
     async fn person_search() {
         let person_search = PersonClient::new(Some(setup()));
-        let result = person_search.search("nicole+kidman".to_string()).await;
+        let result = person_search.search("nicole+kidman").await;
         if let Ok(person_search_result) = result {
             assert_eq!(person_search_result.total_results, 1);
             let search_results = person_search_result.results;

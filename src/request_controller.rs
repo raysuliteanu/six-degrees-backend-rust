@@ -29,5 +29,5 @@ pub async fn person_detail(id: i32, controller: &State<RequestController>) -> Js
 
 #[get("/search/person/<query>")]
 pub async fn person_search(query: &str, controller: &State<RequestController>) -> Json<PersonSearchResult> {
-    Json(controller.person_client.search(query.to_string()).await.unwrap())
+    Json(controller.person_client.search(query).await.unwrap())
 }
